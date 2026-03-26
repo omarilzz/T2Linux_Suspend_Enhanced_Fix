@@ -14,7 +14,7 @@ Credits & Inspiration:
 
 🚀 Key Features
 
-    BridgeOS Stabilization: Implements a calculated 5-second delay to allow the T2 chip to initialize before driver attachment (prevents "Interrupt Storms").
+    BridgeOS Stabilization: Implements a calculated 2-second delay to allow the T2 chip to initialize before driver attachment (prevents "Interrupt Storms").
 
     Module Lifecycle Management: Cleanly unloads and reloads apple-bce and appletbdrm to prevent kernel panics.
 
@@ -22,9 +22,9 @@ Credits & Inspiration:
 
     HID/Backlight Recovery: Forces the keyboard backlight and Touch Bar (tiny-dfr) back to an active state after resume.
 
-🧠 Why the 5-Second Delay?
+🧠 Why the 2-Second Delay?
 
-On the i9 16,1 model, the BridgeOS (T2) requires more time than other models to re-initialize its security and audio buffers during the power transition. Shaving this delay below 3 seconds often leads to:
+On the i9 16,1 model, the BridgeOS (T2) requires more time than other models to re-initialize its security and audio buffers during the power transition. Shaving this delay below 2 seconds often leads to:
 
     Stuttering Audio: The CPU is flooded with "Wait" interrupts from the T2 chip.
 
