@@ -1,0 +1,47 @@
+[Unit]
+Description=Unload and Reload Modules for Suspend and Resume (T2 16,1 Optimized)
+#Author = Omarilzz ( Thanks to André Eikmeyer / Gemini / Linux on T2 Macs Community )
+Before=sleep.target
+StopWhenUnneeded=yes
+
+[Service]
+User=root
+Type=oneshot
+RemainAfterExit=yes
+
+# --- SUSPEND PATH (Before Sleep) ---
+ExecStart=-/usr/bin/bash -lc 'set -- $(loginctl list-sessions --no-legend 2>/dev/null | head -n1); uid=$2; [ -n "$uid" ] || exit 0; [ -S "/run/user/$uid/bus" ] || exit 0; username=$(id -nu "$uid" 2>/dev/null) || exit 0; XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" runuser -u "$username" -- systemctl --user stop pipewire.socket pipewire-pulse.socket pipewire.service pipewire-pulse.service wireplumber.service 2>/dev/null || true'
+ExecStart=-/bin/bash -c "/bin/echo 0 | tee /sys/class/leds/:white:kbd_backlight/brightness"
+ExecStart=-/usr/bin/systemctl stop tiny-dfr.service
+ExecStart=-/usr/bin/pkill -9 tiny-dfr
+ExecStart=-/usr/bin/rmmod appletbdrm
+ExecStart=-/usr/bin/rmmod hid_appletb_kbd
+ExecStart=-/usr/bin/rmmod hid_appletb_bl
+ExecStart=-/usr/bin/rmmod -f apple-bce
+
+# --- RESUME PATH (After Wake) ---
+# 1. IMMEDIATE SIGNAL: Turn keyboard light on NOW so I know it's powered on [Experimental Breaks Tiny-DFR]
+#ExecStop=-/bin/bash -c "/bin/echo 255 | tee /sys/class/leds/:white:kbd_backlight/brightness"
+# 2. Reload base T2 driver
+ExecStop=/usr/bin/modprobe apple-bce
+# 3. MANDATORY: Wait for BridgeOS to stabilize (André's Point)
+ExecStop=/usr/bin/sleep 2
+# 4. Force PCI rescan to find the "missing" T2 chip
+ExecStop=-/usr/bin/sh -c 'echo 1 > /sys/bus/pci/rescan'
+# 5. Reload remaining drivers
+ExecStop=-/usr/bin/modprobe hid_appletb_bl
+ExecStop=-/usr/bin/modprobe hid_appletb_kbd
+ExecStop=-/usr/bin/modprobe appletbdrm
+ExecStop=/usr/bin/sleep 2
+
+# --- POST-RESUME (UI & Audio) ---
+ExecStopPost=-/usr/bin/systemctl reset-failed tiny-dfr.service
+ExecStopPost=-/usr/bin/systemctl restart tiny-dfr.service
+# Poke Pipewire specifically to fix the audio lag
+ExecStopPost=-/usr/bin/bash -lc 'set -- $(loginctl list-sessions --no-legend 2>/dev/null | head -n1); uid=$2; username=$(id -nu "$uid" 2>/dev/null); XDG_RUNTIME_DIR="/run/user/$uid" runuser -u "$username" -- systemctl --user restart wireplumber pipewire pipewire-pulse 2>/dev/null || true'
+# Fix Key Lights After resume 
+ExecStop=-/bin/bash -c "/bin/echo 150 | tee /sys/class/leds/:white:kbd_backlight/brightness"
+ExecStopPost=-/usr/bin/systemctl restart upower
+
+[Install]
+WantedBy=sleep.target
