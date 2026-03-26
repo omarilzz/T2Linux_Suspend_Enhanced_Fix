@@ -46,3 +46,16 @@ On the i9 16,1 model, the BridgeOS (T2) requires more time than other models to 
 
     sudo systemctl enable t2-suspend.service
     sudo systemctl daemon-reload
+
+🧪 Testing
+
+    To ensure that the fix is successfully applied and functioning as expected run the below command:
+    Bash
+    
+    sudo systemctl restart t2-suspend.service
+
+    Whats expected to be seen?
+    You should see a scenario of suspend and resume happening off loading and loading back all drivers and functions
+    Test if all has been loaded successfully else id suggest you change the the delay from 2 seconds to 5 seconds and test
+    Which is the last line of Resume PATH
+
